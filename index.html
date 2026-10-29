@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="data:,">
+<title>フォトシューティング写真 受け取り</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --text: #222; --muted: #6b6b6b; --line: #e3e0da;
+    --accent: #c2185b; --accent-weak: #fce4ec; --ok: #2e7d32; --err: #c62828;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+    font-size: 16px; line-height: 1.6; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 16px 16px 120px; }
+  h1 { font-size: 1.25rem; margin: 8px 0 4px; letter-spacing: .03em; }
+  .lead { color: var(--muted); font-size: .9rem; margin: 0 0 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+  label { display: block; font-weight: 600; font-size: .95rem; margin: 10px 0 4px; }
+  .hint { font-weight: normal; color: var(--muted); font-size: .8rem; }
+  input[type=text], input[type=email] { width: 100%; font-size: 16px; padding: 12px; border: 1px solid #cfcac2; border-radius: 10px; background: #fff; color: var(--text); -webkit-appearance: none; appearance: none; min-height: 48px; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  button { font: inherit; border: 0; border-radius: 10px; padding: 12px 16px; min-height: 48px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .primary { background: var(--accent); color: #fff; font-weight: 700; width: 100%; margin-top: 16px; }
+  .secondary { background: #fff; color: var(--text); border: 1px solid #cfcac2; }
+  .msg { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: .92rem; display: none; }
+  .msg.show { display: block; }
+  .msg.err { background: #fdecea; color: var(--err); }
+  .msg.info { background: #eef4ff; color: #1a3e8a; }
+  .msg.ok { background: #e8f5e9; color: var(--ok); }
+  .summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  .summary h2 { font-size: 1.05rem; margin: 0; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .tools button { flex: 1 1 auto; }
+  .mode { display: flex; gap: 16px; flex-wrap: wrap; font-size: .9rem; margin: 8px 0 0; }
+  .mode label { display: inline-flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+  @media (min-width: 560px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 820px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .ph { position: relative; background: #fff; border: 2px solid transparent; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+  .ph.sel { border-color: var(--accent); background: var(--accent-weak); }
+  .ph .imgbox { aspect-ratio: 1 / 1; background: #ece9e3 center/cover no-repeat; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: .8rem; cursor: pointer; }
+  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; -webkit-touch-callout: none; }
+  .ph .chk { position: absolute; top: 8px; left: 8px; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.92); border: 2px solid #999; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; pointer-events: none; }
+  .ph.sel .chk { background: var(--accent); border-color: var(--accent); }
+  .ph .meta { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 6px 8px; font-size: .72rem; color: var(--muted); }
+  .ph .meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ph .zoom { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; min-height: 32px; font-size: .75rem; color: var(--text); flex-shrink: 0; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,.97); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); display: none; z-index: 10; }
+  .bar.show { display: block; }
+  .bar .in { max-width: 960px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .bar .count { font-size: .9rem; white-space: nowrap; }
+  .bar .primary { margin: 0; flex: 1; }
+  .progress { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; margin-top: 8px; display: none; }
+  .progress.show { display: block; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .ios { font-size: .85rem; background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+  .ios b { color: #8d6e00; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 20; display: none; flex-direction: column; }
+  .modal.show { display: flex; }
+  .modal .top { display: flex; justify-content: space-between; align-items: center; color: #fff; padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top)); font-size: .85rem; gap: 8px; }
+  .modal .top span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal .close { background: rgba(255,255,255,.15); color: #fff; min-height: 40px; padding: 8px 14px; }
+  .modal .body { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 8px; color: #ddd; }
+  .modal .body img { max-width: 100%; max-height: 100%; object-fit: contain; -webkit-touch-callout: default; }
+  .modal .foot { padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); color: #ddd; font-size: .82rem; text-align: center; }
+  .modal .foot button { margin-top: 8px; width: 100%; max-width: 420px; }
+  .dates { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+  .dates button { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #cfcac2; text-align: left; font-size: 1rem; }
+  .dates button .n { color: var(--muted); font-size: .85rem; }
+  .dates button .arrow { color: var(--accent); margin-left: 8px; }
+  .dates button.cur { border: 2px solid var(--accent); background: var(--accent-weak); font-weight: 700; }
+  .step { display: inline-block; background: var(--accent); color: #fff; border-radius: 999px; font-size: .75rem; padding: 1px 9px; margin-right: 6px; vertical-align: 2px; }
+  .card h2.sec { font-size: 1.05rem; margin: 0; }
+  /* 共有（写真アプリに保存）シート */
+  .sheetWrap { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 15; display: none; align-items: flex-end; justify-content: center; }
+  .sheetWrap.show { display: flex; }
+  .sheet { background: #fff; width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 20px rgba(0,0,0,.15); max-height: 92vh; overflow-y: auto; }
+  .sheet h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .sheet .how { font-size: .95rem; background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 10px 12px; margin: 10px 0 0; }
+  .sheet .how b { color: #8d6e00; }
+  .sheet .sub { color: var(--muted); font-size: .88rem; margin: 0; }
+  .sheet .primary { font-size: 1.1rem; min-height: 56px; }
+  .sheet .row { display: flex; gap: 8px; margin-top: 10px; }
+  .sheet .row button { flex: 1; }
+  .sheet .progress { margin-top: 12px; height: 8px; }
+  .inapp { font-size: .92rem; background: #fdecea; color: #7a1c1c; border: 1px solid #f5c2c0; border-radius: 12px; padding: 12px; margin: 0 0 16px; }
+  .inapp b { color: var(--err); }
+  .shareAlt { width: 100%; margin-top: 12px; }
+  /* スマホ向け：タップしやすく・読みやすく */
+  body.mobile .ph .zoom { min-height: 44px; min-width: 52px; font-size: .85rem; padding: 6px 10px; }
+  body.mobile .ph .meta { font-size: .8rem; padding: 4px 6px 4px 8px; }
+  body.mobile .ph .chk { width: 34px; height: 34px; }
+  body.mobile .tools button { min-height: 48px; }
+  body.mobile .ios { font-size: .92rem; }
+  body.mobile .bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 -2px 12px rgba(0,0,0,.08); }
+  body.mobile .bar .count { font-size: .95rem; font-weight: 700; }
+  body.mobile .bar .primary { min-height: 52px; font-size: 1.02rem; padding: 10px 12px; }
+  body.mobile .wrap { padding-left: 12px; padding-right: 12px; padding-bottom: 140px; }
+  html, body { overflow-x: hidden; }
+  img { max-width: 100%; }
+  .hidden { display: none !important; }
+  footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">フォトシューティング写真 受け取り</h1>
+  <p class="lead" id="lead">STORES予約に登録したメールアドレスを入力すると、写真があるレッスンの日付が表示されます。日付を選ぶと、ご自身の写真だけが表示されます。</p>
+
+  <div class="inapp hidden" id="inappNote" role="note"></div>
+
+  <form class="card" id="form" autocomplete="off" novalidate>
+    <div id="emailWrap">
+      <h2 class="sec"><span class="step">1</span>メールアドレスを入力</h2>
+      <label for="email">STORES予約に登録したメールアドレス</label>
+      <input type="email" id="email" placeholder="例：taro@example.com" maxlength="254" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false">
+      <p class="hint" style="margin:6px 0 0">レッスンの予約に使っているメールアドレスを入力してください。</p>
+    </div>
+    <div id="nameWrap" class="hidden">
+      <h2 class="sec"><span class="step">1</span>芸名を入力</h2>
+      <label for="name">芸名 <span class="hint">（スペースは無くても大丈夫です）</span></label>
+      <input type="text" id="name" placeholder="例：さくら はなこ" maxlength="40" autocapitalize="off" spellcheck="false">
+    </div>
+    <div id="codeWrap" class="hidden">
+      <label for="code">受け取りコード <span class="hint">（事務所からお知らせしたコード）</span></label>
+      <input type="text" id="code" maxlength="40" autocapitalize="characters" spellcheck="false" inputmode="text">
+    </div>
+    <button type="submit" class="primary" id="searchBtn">写真のある日を探す</button>
+    <div class="msg" id="formMsg" role="status" aria-live="polite"></div>
+  </form>
+
+  <section id="datesCard" class="card hidden" aria-live="polite">
+    <h2 class="sec"><span class="step">2</span>レッスンの日付を選ぶ</h2>
+    <p class="hint" id="datesLead" style="margin:6px 0 0"></p>
+    <ul class="dates" id="dateList"></ul>
+    <div class="msg" id="datesMsg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="result" class="card hidden" aria-live="polite">
+    <div class="summary">
+      <h2 id="resultTitle"></h2>
+      <span class="hint" id="resultCount"></span>
+    </div>
+    <div class="tools">
+      <button type="button" class="secondary" id="selAllBtn">全部選択</button>
+      <button type="button" class="secondary" id="selNoneBtn">選択解除</button>
+    </div>
+    <div class="mode" id="modeBox">
+      <span>保存方法：</span>
+      <label><input type="radio" name="mode" value="each"> 1枚ずつ</label>
+      <label><input type="radio" name="mode" value="zip"> まとめてZIP</label>
+    </div>
+    <div class="ios hidden" id="iosNote"></div>
+    <button type="button" class="secondary shareAlt hidden" id="shareAltBtn" disabled>共有メニューから保存</button>
+    <div class="msg" id="dlMsg" role="status" aria-live="polite"></div>
+    <div class="progress" id="progress"><div></div></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <footer>写真の無断転載・SNSへの投稿は事務所の指示に従ってください。</footer>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <span class="count" id="selCount">0枚選択</span>
+    <button type="button" class="primary" id="dlBtn" disabled>ダウンロード</button>
+  </div>
+</div>
+
+<div class="sheetWrap" id="shareSheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+  <div class="sheet">
+    <h3 id="shTitle">写真を準備しています…</h3>
+    <p class="sub" id="shSub"></p>
+    <div class="progress" id="shProgress"><div></div></div>
+    <div class="how" id="shHow"></div>
+    <div class="msg" id="shMsg" role="status" aria-live="polite"></div>
+    <button type="button" class="primary hidden" id="shGoBtn">保存する</button>
+    <button type="button" class="primary hidden" id="shDlBtn">ダウンロードで保存する</button>
+    <div class="row"><button type="button" class="secondary" id="shCancelBtn">やめる</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="top"><span id="mName"></span><button type="button" class="close" id="mClose">閉じる ✕</button></div>
+  <div class="body" id="mBody"></div>
+  <div class="foot">
+    <div id="mHint">写真を長押しすると保存できます。</div>
+    <button type="button" class="primary hidden" id="mShare">写真を保存・共有する</button>
+    <button type="button" class="secondary" id="mDl">この写真をダウンロード</button>
+  </div>
+</div>
+
+<script>
+/* ===== 設定：Apps Script の Web アプリ URL（/exec で終わるもの） =====
+ * このファイルには個人情報は入っていません。入っているのはこの URL だけです。 */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzUJ0jf7YT2Dt1xrnlOsIpzxzDT6EpDLpUAoxo6jMsBjkab4oUDH6YnvQlTRX34yGO9uw/exec';
+// 画面の設定（読み込み時に Apps Script の getAppConfig から取得。取れない時はこの値）
+var APP = { title: 'フォトシューティング写真 受け取り', requireCode: false, lookupMode: 'email', maxZipBytes: 30 * 1024 * 1024, maxFileBytes: 35 * 1024 * 1024 };
+</script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 共通 ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroid = /Android/i.test(ua);
+  var isMobile = isIOS || /Android|Mobile/i.test(ua);
+  // アプリ内ブラウザ（LINE / Instagram / Facebook など）は保存・共有がうまく動かないことが多い
+  var inAppName = /\bLine\//i.test(ua) ? 'LINE' : /Instagram/i.test(ua) ? 'Instagram'
+    : /FBAN|FBAV|FB_IAB/i.test(ua) ? 'Facebook' : /MicroMessenger/i.test(ua) ? 'WeChat'
+    : /KAKAOTALK/i.test(ua) ? 'KakaoTalk' : /TikTok|musical_ly|BytedanceWebview/i.test(ua) ? 'TikTok' : '';
+  // 画像ファイルを共有メニュー（navigator.share）に渡せるか
+  var canShareImages = (function () {
+    try {
+      if (!navigator.share || !navigator.canShare || typeof File !== 'function') return false;
+      return !!navigator.canShare({ files: [new File([new Uint8Array([255, 216, 255])], 'test.jpg', { type: 'image/jpeg' })] });
+    } catch (e) { return false; }
+  })();
+  // iPhone 等：共有メニュー →「画像を保存」で写真アプリへ。Android はダウンロードがメイン。
+  var shareMain = isMobile && !isAndroid && canShareImages;
+  var SHARE_MAX_FILES = 10, SHARE_MAX_BYTES = 50 * 1024 * 1024;
+
+  // Apps Script の JSON API（doPost）を呼ぶ。
+  // text/plain で送るので事前確認（CORS preflight）は発生せず、Google のログイン情報（Cookie）も送らない
+  // → 複数の Google アカウントにログインしていても「ファイルを開くことができません」になりません。
+  function call(fn) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    var body = JSON.stringify({ fn: fn, args: args, clientId: clientId });
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: body,
+      credentials: 'omit',
+      redirect: 'follow',
+      cache: 'no-store'
+    }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    }).then(function (text) {
+      try { return JSON.parse(text); } catch (e) { throw new Error('bad response'); }
+    }).catch(function () {
+      throw new Error('通信エラーが発生しました');
+    });
+  }
+  function showMsg(el, text, type) {
+    el.textContent = text || '';
+    el.className = 'msg' + (text ? ' show ' + (type || 'info') : '');
+  }
+  function fmtSize(b) {
+    if (!b) return '';
+    if (b >= 1048576) return (b / 1048576).toFixed(1) + 'MB';
+    return Math.max(1, Math.round(b / 1024)) + 'KB';
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function getClientId() {
+    var id = '';
+    try { id = localStorage.getItem('pp_cid') || ''; } catch (e) { /* storage unavailable */ }
+    if (!/^[a-z0-9]{16,40}$/.test(id)) {
+      id = '';
+      var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      var buf = new Uint8Array(24);
+      (window.crypto || window.msCrypto).getRandomValues(buf);
+      for (var i = 0; i < buf.length; i++) id += chars.charAt(buf[i] % chars.length);
+      try { localStorage.setItem('pp_cid', id); } catch (e) { /* ignore */ }
+    }
+    return id;
+  }
+  function b64ToBlob(b64, mime) {
+    var bin = atob(b64);
+    var len = bin.length;
+    var arr = new Uint8Array(len);
+    for (var i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime || 'application/octet-stream' });
+  }
+  function saveBlob(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 60000);
+  }
+
+  /* ---------- 状態 ---------- */
+  var state = { nameToken: '', displayName: '', dateKey: '', token: '', files: [], selected: {}, zipBase: 'photos', busy: false };
+  var clientId = getClientId();
+
+  /* ---------- 初期表示 ---------- */
+  var LEAD_EMAIL = $('lead').textContent;
+  var LEAD_NAME = '芸名を入力すると、写真があるレッスンの日付が表示されます。日付を選ぶと、ご自身の写真だけが表示されます。';
+  var emailMode = true, idLabel = 'メールアドレス';
+  function applyConfig() {
+    $('title').textContent = APP.title;
+    document.title = APP.title;
+    $('codeWrap').classList.toggle('hidden', !APP.requireCode);
+    emailMode = APP.lookupMode !== 'name';
+    $('emailWrap').classList.toggle('hidden', !emailMode);
+    $('nameWrap').classList.toggle('hidden', emailMode);
+    $('lead').textContent = emailMode ? LEAD_EMAIL : LEAD_NAME;
+    idLabel = emailMode ? 'メールアドレス' : '芸名';
+  }
+  applyConfig();
+  // サーバーの設定を読み込む（失敗しても上の既定値のまま使えます）
+  var configReady = call('getAppConfig').then(function (c) {
+    if (!c || !c.ok) return;
+    if (typeof c.title === 'string' && c.title) APP.title = c.title;
+    if (typeof c.requireCode === 'boolean') APP.requireCode = c.requireCode;
+    if (c.lookupMode === 'name' || c.lookupMode === 'email') APP.lookupMode = c.lookupMode;
+    if (typeof c.maxZipBytes === 'number' && c.maxZipBytes > 0) APP.maxZipBytes = c.maxZipBytes;
+    if (typeof c.maxFileBytes === 'number' && c.maxFileBytes > 0) APP.maxFileBytes = c.maxFileBytes;
+    applyConfig();
+  }).catch(function () { /* 既定値のまま */ });
+  var modeDefault = isMobile ? 'each' : 'zip';
+  document.querySelector('input[name=mode][value=' + modeDefault + ']').checked = true;
+  if (isMobile) {
+    document.body.classList.add('mobile');
+    $('modeBox').classList.add('hidden'); // スマホは ZIP を使わない（写真アプリに入らないため）
+  }
+  setPlatformNote();
+  if (inAppName) {
+    $('inappNote').innerHTML = '<b>' + inAppName + ' のアプリ内で開いています。</b><br>このままだと写真をうまく保存できないことがあります。画面の「…」や共有ボタンから「' +
+      (isIOS ? 'Safariで開く' : isAndroid ? 'ブラウザで開く（Chrome）' : 'ブラウザで開く') + '」を選んで、開き直してください。';
+    $('inappNote').classList.remove('hidden');
+  }
+  function setPlatformNote() {
+    var html = '';
+    if (shareMain) {
+      html = '<b>' + (isIOS ? 'iPhone・iPad' : 'スマホ') + 'で「写真」アプリに保存する方法</b><br>' +
+        '① 保存したい写真をタップして選ぶ<br>' +
+        '② 下の「写真アプリに保存」→「保存する」をタップ<br>' +
+        '③ 出てきたメニューの<b>「○枚の画像を保存」</b>をタップ<br>' +
+        '<span class="hint">枚数が多いときは10枚ずつに分けて保存します。うまくいかないときは「拡大」→ 写真を長押し →「"写真"に追加」でも保存できます。</span>';
+    } else if (isIOS) {
+      html = '<b>iPhone・iPad の方へ</b><br>' +
+        '・写真アプリに保存するには、写真の「拡大」をタップ → 大きな写真を<b>長押し</b> →「"写真"に追加」（または「画像を保存」）を選んでください。<br>' +
+        '・「ダウンロード」ボタンで保存した写真は「ファイル」アプリの「ダウンロード」フォルダに入ります。';
+    } else if (isAndroid) {
+      html = '<b>Android の方へ</b><br>' +
+        '・写真を選んで下の「ダウンロード」をタップすると、<b>ギャラリー（またはGoogleフォト）の「ダウンロード」フォルダ</b>に保存されます。<br>' +
+        '・見つからないときは「Files」アプリの「ダウンロード」もご確認ください。' +
+        (canShareImages ? '<br>・「共有メニューから保存」から、アプリを選んで保存することもできます。' : '');
+    }
+    $('iosNote').innerHTML = html;
+    $('iosNote').classList.toggle('hidden', !html);
+    $('shareAltBtn').classList.toggle('hidden', !(isAndroid && canShareImages));
+  }
+
+  /* ---------- ステップ1：芸名 → 日付一覧 ---------- */
+  function setSearchBusy(on) {
+    state.busy = on;
+    $('searchBtn').disabled = on;
+    $('searchBtn').textContent = on ? '探しています…' : '写真のある日を探す';
+  }
+
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (state.busy) return;
+    var name = emailMode ? '' : $('name').value.trim();
+    var email = emailMode ? $('email').value.trim() : '';
+    var code = APP.requireCode ? $('code').value.trim() : '';
+    if (!(emailMode ? email : name) || (APP.requireCode && !code)) {
+      showMsg($('formMsg'), APP.requireCode ? idLabel + 'と受け取りコードを入力してください。' : idLabel + 'を入力してください。', 'err');
+      return;
+    }
+    if (emailMode && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((email.normalize ? email.normalize('NFKC') : email).replace(/[\s\u3000]/g, ''))) {
+      showMsg($('formMsg'), 'メールアドレスの形式をご確認ください。', 'err');
+      return;
+    }
+    setSearchBusy(true);
+    showMsg($('formMsg'), '');
+    resetDates();
+    resetResult();
+    call('findDates', { name: name, email: email, code: code, clientId: clientId })
+      .then(function (res) {
+        setSearchBusy(false);
+        if (!res || !res.ok) { showMsg($('formMsg'), (res && res.message) || '見つかりませんでした。', 'err'); return; }
+        state.nameToken = res.token;
+        state.displayName = res.displayName || name;
+        renderDates(res.dates);
+      }, function () {
+        setSearchBusy(false);
+        showMsg($('formMsg'), '通信エラーが発生しました。電波の良い場所でもう一度お試しください。', 'err');
+      });
+  });
+
+  function resetDates() {
+    state.nameToken = ''; state.dateKey = '';
+    $('dateList').innerHTML = '';
+    $('datesCard').classList.add('hidden');
+    showMsg($('datesMsg'), '');
+  }
+
+  function renderDates(dates) {
+    var ul = $('dateList');
+    ul.innerHTML = '';
+    $('datesLead').textContent = (state.displayName ? state.displayName + ' さんの' : '') + '写真がある日：' + dates.length + '件（新しい順）';
+    dates.forEach(function (d) {
+      var li = document.createElement('li');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.key = d.key;
+      var l = document.createElement('span');
+      l.textContent = d.label;
+      var r = document.createElement('span');
+      r.className = 'n';
+      r.textContent = (d.count ? d.count + '枚' : '');
+      var ar = document.createElement('span');
+      ar.className = 'arrow';
+      ar.textContent = '›';
+      r.appendChild(ar);
+      btn.appendChild(l);
+      btn.appendChild(r);
+      btn.addEventListener('click', function () { selectDate(d.key); });
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+    $('datesCard').classList.remove('hidden');
+    if (dates.length === 1) selectDate(dates[0].key); // 1日だけならそのまま表示
+    else $('datesCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ---------- ステップ2：日付 → 写真一覧 ---------- */
+  function selectDate(key) {
+    if (state.busy) return;
+    state.busy = true;
+    state.dateKey = key;
+    Array.prototype.forEach.call($('dateList').querySelectorAll('button'), function (b) {
+      b.classList.toggle('cur', b.dataset.key === key);
+      b.disabled = true;
+    });
+    showMsg($('datesMsg'), '写真を読み込んでいます…', 'info');
+    resetResult();
+    call('lookupPhotos', { token: state.nameToken, date: key })
+      .then(function (res) {
+        if (!res || !res.ok) {
+          showMsg($('datesMsg'), (res && res.message) || '見つかりませんでした。', 'err');
+          if (res && res.expired) resetDates();
+          return;
+        }
+        showMsg($('datesMsg'), '');
+        state.token = res.token;
+        state.files = res.files;
+        state.zipBase = res.zipBase || 'photos';
+        renderResult(res);
+      })
+      .catch(function () { showMsg($('datesMsg'), '通信エラーが発生しました。もう一度日付を選んでください。', 'err'); })
+      .then(function () {
+        state.busy = false;
+        Array.prototype.forEach.call($('dateList').querySelectorAll('button'), function (b) { b.disabled = false; });
+        updateSel();
+      });
+  }
+
+  function resetResult() {
+    state.token = ''; state.files = []; state.selected = {};
+    $('grid').innerHTML = '';
+    $('result').classList.add('hidden');
+    $('bar').classList.remove('show');
+    showMsg($('dlMsg'), '');
+    updateSel();
+  }
+
+  function renderResult(res) {
+    $('resultTitle').textContent = res.dateLabel + (state.displayName ? '　' + state.displayName + ' さん' : '');
+    $('resultCount').textContent = res.files.length + '枚';
+    var grid = $('grid');
+    var frag = document.createDocumentFragment();
+    var groups = {};
+    res.files.forEach(function (f) { groups[f.group] = true; });
+    var multiGroup = Object.keys(groups).length > 1;
+    res.files.forEach(function (f, i) {
+      var card = document.createElement('div');
+      card.className = 'ph';
+      card.dataset.id = f.id;
+      var box = document.createElement('div');
+      box.className = 'imgbox';
+      box.textContent = '読み込み中…';
+      box.setAttribute('role', 'checkbox');
+      box.setAttribute('aria-checked', 'false');
+      box.setAttribute('tabindex', '0');
+      box.setAttribute('aria-label', (i + 1) + '枚目を選択');
+      var chk = document.createElement('div');
+      chk.className = 'chk';
+      chk.textContent = '✓';
+      var meta = document.createElement('div');
+      meta.className = 'meta';
+      var label = document.createElement('span');
+      label.textContent = (i + 1) + (multiGroup ? '・' + f.group : '') + (f.size ? '（' + fmtSize(f.size) + '）' : '');
+      var zoom = document.createElement('button');
+      zoom.type = 'button';
+      zoom.className = 'zoom';
+      zoom.textContent = '拡大';
+      meta.appendChild(label);
+      meta.appendChild(zoom);
+      card.appendChild(box);
+      card.appendChild(chk);
+      card.appendChild(meta);
+      box.addEventListener('click', function () { toggle(f.id); });
+      box.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(f.id); } });
+      zoom.addEventListener('click', function () { openPreview(f); });
+      frag.appendChild(card);
+    });
+    grid.appendChild(frag);
+    $('result').classList.remove('hidden');
+    $('bar').classList.add('show');
+    updateSel();
+    loadThumbs();
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ---------- サムネイル読み込み（8枚ずつ・3並列。上から順に表示） ---------- */
+  function loadThumbs() {
+    var token = state.token;
+    var ids = state.files.map(function (f) { return f.id; });
+    var batches = [];
+    for (var i = 0; i < ids.length; i += 8) batches.push(ids.slice(i, i + 8));
+    function worker() {
+      if (!batches.length || token !== state.token) return Promise.resolve();
+      var b = batches.shift();
+      return call('getThumbnails', token, b).then(function (res) {
+        if (token !== state.token) return;
+        if (!res || !res.ok) { b.forEach(function (id) { setThumb(id, ''); }); return; }
+        b.forEach(function (id) { setThumb(id, res.thumbs[id] || ''); });
+      }, function () {
+        b.forEach(function (id) { setThumb(id, ''); });
+      }).then(worker);
+    }
+    return Promise.all([worker(), worker(), worker()]);
+  }
+  function setThumb(id, dataUrl) {
+    var card = document.querySelector('.ph[data-id="' + id + '"]');
+    if (!card) return;
+    var box = card.querySelector('.imgbox');
+    box.textContent = '';
+    if (dataUrl) {
+      var img = new Image();
+      img.alt = '';
+      img.decoding = 'async';
+      img.src = dataUrl;
+      box.appendChild(img);
+    } else {
+      box.textContent = 'プレビューなし（「拡大」で表示）';
+    }
+  }
+
+  /* ---------- 選択 ---------- */
+  function toggle(id) {
+    if (state.selected[id]) delete state.selected[id]; else state.selected[id] = true;
+    updateSel();
+  }
+  function updateSel() {
+    var n = 0, bytes = 0;
+    state.files.forEach(function (f) {
+      var on = !!state.selected[f.id];
+      if (on) { n++; bytes += f.size || 0; }
+      var card = document.querySelector('.ph[data-id="' + f.id + '"]');
+      if (card) {
+        card.classList.toggle('sel', on);
+        card.querySelector('.imgbox').setAttribute('aria-checked', on ? 'true' : 'false');
+      }
+    });
+    $('selCount').textContent = n + '枚選択' + (bytes && !isMobile ? '（' + fmtSize(bytes) + '）' : '');
+    $('dlBtn').disabled = n === 0 || state.busy;
+    $('dlBtn').textContent = shareMain ? '写真アプリに保存' + (n ? '（' + n + '枚）' : '')
+      : isMobile ? 'ダウンロード' + (n ? '（' + n + '枚）' : '') : 'ダウンロード';
+    $('shareAltBtn').disabled = n === 0 || state.busy;
+    $('shareAltBtn').textContent = '共有メニューから保存' + (n ? '（' + n + '枚）' : '');
+    $('selAllBtn').disabled = !state.files.length;
+  }
+  $('selAllBtn').addEventListener('click', function () {
+    state.files.forEach(function (f) { state.selected[f.id] = true; });
+    updateSel();
+  });
+  $('selNoneBtn').addEventListener('click', function () { state.selected = {}; updateSel(); });
+
+  /* ---------- ダウンロード ---------- */
+  function setProgress(done, total) {
+    var p = $('progress');
+    if (!total) { p.classList.remove('show'); return; }
+    p.classList.add('show');
+    p.firstElementChild.style.width = Math.round(done / total * 100) + '%';
+  }
+  function getMode() {
+    var r = document.querySelector('input[name=mode]:checked');
+    return r ? r.value : 'each';
+  }
+
+  $('dlBtn').addEventListener('click', function () {
+    var sel = state.files.filter(function (f) { return state.selected[f.id]; });
+    if (!sel.length || state.busy) return;
+    if (shareMain) { startShare(sel); return; }
+    runDownload(sel);
+  });
+  $('shareAltBtn').addEventListener('click', function () {
+    var sel = state.files.filter(function (f) { return state.selected[f.id]; });
+    if (!sel.length || state.busy || !canShareImages) return;
+    startShare(sel);
+  });
+
+  function runDownload(sel) {
+    state.busy = true;
+    $('dlBtn').disabled = true;
+    var job = (!isMobile && getMode() === 'zip' && sel.length > 1) ? downloadZips(sel) : downloadEach(sel);
+    job.catch(function () {
+      showMsg($('dlMsg'), '通信エラーで中断しました。もう一度お試しください。', 'err');
+    }).then(function () {
+      state.busy = false;
+      setProgress(0, 0);
+      updateSel();
+    });
+  }
+
+  function downloadOne(f) {
+    return call('downloadFile', state.token, f.id).then(function (res) {
+      if (!res || !res.ok) throw new Error((res && res.message) || 'エラー');
+      saveBlob(b64ToBlob(res.b64, res.mime), res.name);
+    });
+  }
+
+  function downloadEach(list) {
+    var errors = [], done = 0, i = 0;
+    if (list.length > 1) showMsg($('dlMsg'), '1枚ずつ保存しています。ブラウザに「複数のファイルのダウンロードを許可しますか？」と出たら「許可」を押してください。', 'info');
+    function next() {
+      if (i >= list.length) return Promise.resolve();
+      var f = list[i++];
+      if (f.size > APP.maxFileBytes) { errors.push(f.name + '：サイズが大きすぎます'); done++; return next(); }
+      return downloadOne(f).catch(function (e) { errors.push(f.name + '：' + e.message); })
+        .then(function () { done++; setProgress(done, list.length); return sleep(700); })
+        .then(next);
+    }
+    setProgress(0, list.length);
+    return next().then(function () { finishMsg(list.length, errors); });
+  }
+
+  /* 合計サイズが上限を超えないように複数の ZIP に分ける */
+  function downloadZips(list) {
+    var parts = [], cur = [], curBytes = 0, singles = [];
+    list.forEach(function (f) {
+      var s = f.size || 0;
+      if (s > APP.maxZipBytes) { singles.push(f); return; }
+      if (cur.length && curBytes + s > APP.maxZipBytes) { parts.push(cur); cur = []; curBytes = 0; }
+      cur.push(f); curBytes += s;
+    });
+    if (cur.length) parts.push(cur);
+    var total = parts.length + singles.length, done = 0, errors = [];
+    var note = parts.length > 1
+      ? '容量が大きいため、ZIP を ' + parts.length + ' 個に分けて保存します。少しお待ちください…'
+      : 'ZIP を作成しています。少しお待ちください…';
+    if (singles.length) note += '（大きい写真 ' + singles.length + ' 枚は1枚ずつ保存します）';
+    showMsg($('dlMsg'), note, 'info');
+    setProgress(0, total);
+    var idx = 0;
+    function nextZip() {
+      if (idx >= parts.length) return Promise.resolve();
+      var part = parts[idx++];
+      var name = state.zipBase + (parts.length > 1 ? '_' + idx : '') + '.zip';
+      return call('downloadZip', state.token, part.map(function (f) { return f.id; }), name)
+        .then(function (res) {
+          if (res && res.ok) { saveBlob(b64ToBlob(res.b64, res.mime), res.name); return; }
+          if (res && res.message === 'ZIP_TOO_BIG') { singles = singles.concat(part); total += part.length; return; }
+          errors.push(name + '：' + ((res && res.message) || 'エラー'));
+        }, function () {
+          // ZIP 作成に失敗した場合（容量・時間制限など）は1枚ずつに切り替え
+          singles = singles.concat(part); total += part.length;
+        })
+        .then(function () { done++; setProgress(done, total); return sleep(800); })
+        .then(nextZip);
+    }
+    function nextSingle() {
+      if (!singles.length) return Promise.resolve();
+      var f = singles.shift();
+      var p = f.size > APP.maxFileBytes
+        ? Promise.resolve(errors.push(f.name + '：サイズが大きすぎます'))
+        : downloadOne(f).catch(function (e) { errors.push(f.name + '：' + e.message); });
+      return p.then(function () { done++; setProgress(done, total); return sleep(700); }).then(nextSingle);
+    }
+    return nextZip().then(nextSingle).then(function () { finishMsg(list.length, errors); });
+  }
+
+  function finishMsg(count, errors) {
+    if (!errors.length) {
+      showMsg($('dlMsg'), isAndroid
+        ? count + '枚をダウンロードしました。ギャラリー（またはGoogleフォト）の『ダウンロード』フォルダに保存されました。'
+        : count + '枚の保存を開始しました。' + (isIOS ? '「ファイル」アプリの「ダウンロード」をご確認ください。写真アプリに入れたいときは「拡大」→ 写真を長押し →「"写真"に追加」を選んでください。' : 'ダウンロードフォルダをご確認ください。'), 'ok');
+    } else {
+      showMsg($('dlMsg'), '一部の写真を保存できませんでした：' + errors.slice(0, 3).join(' / ') + (errors.length > 3 ? ' ほか' : ''), 'err');
+    }
+  }
+
+  /* ---------- 写真アプリに保存（共有メニューを使う・まとめて数枚ずつ） ----------
+     navigator.share はタップ（ユーザー操作）の直後でないと動かないため、
+     1グループ分を準備 →「保存する（1/3）」ボタンを押してもらう → 次のグループ… の順に進める。 */
+  function makeBatches(list, maxCount, maxBytes) {
+    var out = [], cur = [], bytes = 0;
+    list.forEach(function (f) {
+      var s = f.size || 0;
+      if (cur.length && (cur.length >= maxCount || bytes + s > maxBytes)) { out.push(cur); cur = []; bytes = 0; }
+      cur.push(f); bytes += s;
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  var sh = null; // { batches, idx, ready: File[], errors, saved, total, fetched, token }
+  function shUI(o) {
+    if ('title' in o) $('shTitle').textContent = o.title;
+    if ('sub' in o) $('shSub').textContent = o.sub;
+    if ('how' in o) { $('shHow').innerHTML = o.how; $('shHow').classList.toggle('hidden', !o.how); }
+    if ('msg' in o) showMsg($('shMsg'), o.msg, o.msgType);
+    if ('go' in o) { $('shGoBtn').classList.toggle('hidden', !o.go); if (o.go) { $('shGoBtn').textContent = o.go; $('shGoBtn').disabled = false; } }
+    if ('dl' in o) { $('shDlBtn').classList.toggle('hidden', !o.dl); if (o.dl) $('shDlBtn').textContent = o.dl; }
+    if ('cancel' in o) $('shCancelBtn').textContent = o.cancel;
+    if ('prog' in o) {
+      var p = $('shProgress');
+      p.classList.toggle('show', !!o.prog);
+      if (o.prog) p.firstElementChild.style.width = Math.round(o.prog[0] / o.prog[1] * 100) + '%';
+    }
+  }
+  function howText(n) {
+    return isIOS
+      ? '<b>iPhone：</b>このあと出てくるメニューで<b>「' + (n ? n + '枚の画像を保存' : '○枚の画像を保存') + '」</b>（1枚のときは「画像を保存」）をタップしてください。「写真」アプリに保存されます。'
+      : 'このあと出てくるメニューで<b>「画像を保存」</b>や<b>「フォト」</b>などの保存先を選んでください。';
+  }
+  function startShare(sel) {
+    var errors = [], ok = [];
+    sel.forEach(function (f) { if (f.size > APP.maxFileBytes) errors.push(f.name + '：サイズが大きすぎます'); else ok.push(f); });
+    if (!ok.length) { finishMsg(sel.length, errors); return; }
+    state.busy = true;
+    updateSel();
+    sh = { batches: makeBatches(ok, SHARE_MAX_FILES, SHARE_MAX_BYTES), idx: 0, ready: null, errors: errors, saved: 0, total: ok.length, fetched: 0, token: state.token };
+    $('shareSheet').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    prepareBatch();
+  }
+  function prepareBatch() {
+    var s = sh, b = s.batches[s.idx], n = s.batches.length, files = [], i = 0;
+    shUI({ title: '写真を準備しています…' + (n > 1 ? '（' + (s.idx + 1) + '/' + n + '）' : ''),
+      sub: b.length + '枚を読み込み中です。少しお待ちください。', how: howText(b.length), msg: '', go: '', dl: '', cancel: 'やめる', prog: [s.fetched, s.total] });
+    function next() {
+      if (sh !== s) return Promise.resolve();
+      if (i >= b.length) return Promise.resolve();
+      var f = b[i++];
+      return call('downloadFile', s.token, f.id).then(function (res) {
+        if (!res || !res.ok) throw new Error((res && res.message) || 'エラー');
+        files.push(new File([b64ToBlob(res.b64, res.mime)], res.name, { type: res.mime }));
+      }).catch(function (e) { s.errors.push(f.name + '：' + (e && e.message || 'エラー')); })
+        .then(function () { s.fetched++; if (sh === s) shUI({ prog: [s.fetched, s.total] }); return next(); });
+    }
+    next().then(function () {
+      if (sh !== s) return;
+      if (!files.length) { batchDone(0); return; }
+      var shareable = false;
+      try { shareable = navigator.canShare({ files: files }); } catch (e) { shareable = false; }
+      if (!shareable) { shareFailed(); return; }
+      s.ready = files;
+      showGo();
+    });
+  }
+  function showGo(msg, type) {
+    var s = sh, n = s.batches.length;
+    shUI({ title: '準備ができました' + (n > 1 ? '（' + (s.idx + 1) + '/' + n + '）' : ''),
+      sub: s.ready.length + '枚の写真を保存します。下のボタンをタップしてください。',
+      how: howText(s.ready.length), go: '保存する（' + (s.idx + 1) + '/' + n + '）', prog: 0, msg: msg || '', msgType: type });
+  }
+  $('shGoBtn').addEventListener('click', function () {
+    var s = sh;
+    if (!s || !s.ready) return;
+    $('shGoBtn').disabled = true;
+    var p;
+    try { p = navigator.share({ files: s.ready }); } catch (e) { p = Promise.reject(e); }
+    Promise.resolve(p).then(function () {
+      if (sh !== s) return;
+      var c = s.ready.length;
+      s.ready = null;
+      batchDone(c);
+    }, function (e) {
+      if (sh !== s) return;
+      var name = e && e.name;
+      if (name === 'AbortError' || name === 'NotAllowedError') {
+        // キャンセル（またはタップ判定切れ）：同じグループをやり直せる
+        showGo('保存がキャンセルされました。もう一度「保存する」をタップするとやり直せます。', 'info');
+      } else {
+        shareFailed();
+      }
+    });
+  });
+  function batchDone(count) {
+    var s = sh;
+    s.saved += count;
+    s.idx++;
+    if (s.idx < s.batches.length) {
+      shUI({ msg: s.saved ? s.saved + '枚の保存が終わりました。続けて準備します…' : '', msgType: 'ok' });
+      prepareBatch();
+      return;
+    }
+    closeShare();
+    if (!s.errors.length) {
+      showMsg($('dlMsg'), s.saved + '枚の保存が終わりました。「写真」アプリをご確認ください。', 'ok');
+    } else {
+      showMsg($('dlMsg'), (s.saved ? s.saved + '枚を保存しました。' : '') + '一部の写真を保存できませんでした：' + s.errors.slice(0, 3).join(' / ') + (s.errors.length > 3 ? ' ほか' : ''), 'err');
+    }
+  }
+  function remainingFiles() {
+    var s = sh, rest = [];
+    for (var k = s.idx; k < s.batches.length; k++) rest = rest.concat(s.batches[k]);
+    return rest;
+  }
+  function shareFailed() {
+    var s = sh;
+    s.ready = null;
+    shUI({ title: '共有メニューが使えませんでした', sub: '',
+      how: 'お手数ですが、次のどちらかの方法で保存してください。<br>' +
+        '・写真の<b>「拡大」→ 大きな写真を長押し →「"写真"に追加」</b>' + (isIOS ? '（写真アプリに入ります）' : '') + '<br>' +
+        '・下の<b>「ダウンロードで保存する」</b>' + (isIOS ? '（「ファイル」アプリに入ります）' : ''),
+      msg: '', go: '', dl: 'ダウンロードで保存する（' + remainingFiles().length + '枚）', cancel: '閉じる', prog: 0 });
+  }
+  $('shDlBtn').addEventListener('click', function () {
+    if (!sh) return;
+    var rest = remainingFiles();
+    closeShare();
+    if (rest.length) runDownload(rest);
+  });
+  $('shCancelBtn').addEventListener('click', function () {
+    var s = sh;
+    if (!s) return;
+    closeShare();
+    if (s.saved) showMsg($('dlMsg'), s.saved + '枚を保存しました（残りは中止しました）。', 'info');
+  });
+  function closeShare() {
+    sh = null;
+    $('shareSheet').classList.remove('show');
+    document.body.style.overflow = '';
+    state.busy = false;
+    updateSel();
+  }
+  window.__photoPortal = { configReady: configReady, makeBatches: makeBatches, shareMain: shareMain, canShareImages: canShareImages, inAppName: inAppName };
+
+  /* ---------- 拡大表示（長押し保存用に元画像を表示） ---------- */
+  var current = null; // { file, blob }
+  function openPreview(f) {
+    current = { file: f, blob: null };
+    $('mName').textContent = f.name;
+    $('mBody').textContent = '読み込み中…（大きい写真は少し時間がかかります）';
+    $('mShare').classList.add('hidden');
+    $('mHint').textContent = isMobile ? '写真を長押しすると保存できます。' : '右クリック →「名前を付けて画像を保存」でも保存できます。';
+    $('modal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    if (f.size > APP.maxFileBytes) { $('mBody').textContent = 'サイズが大きすぎるため表示できません。'; return; }
+    call('downloadFile', state.token, f.id).then(function (res) {
+      if (!current || current.file.id !== f.id) return;
+      if (!res || !res.ok) { $('mBody').textContent = (res && res.message) || '表示できませんでした。'; return; }
+      var img = new Image();
+      img.alt = f.name;
+      // data URL にすると iPhone で長押し保存しやすい
+      img.src = 'data:' + res.mime + ';base64,' + res.b64;
+      img.onerror = function () { $('mBody').textContent = 'この形式はブラウザで表示できません。「ダウンロード」で保存してください。'; };
+      $('mBody').textContent = '';
+      $('mBody').appendChild(img);
+      current.blob = b64ToBlob(res.b64, res.mime);
+      current.name = res.name;
+      try {
+        var file = new File([current.blob], res.name, { type: res.mime });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          current.shareFile = file;
+          $('mShare').classList.remove('hidden');
+        }
+      } catch (e) { /* 共有非対応 */ }
+    }, function () {
+      if (current && current.file.id === f.id) $('mBody').textContent = '通信エラーが発生しました。';
+    });
+  }
+  function closePreview() {
+    current = null;
+    $('modal').classList.remove('show');
+    $('mBody').textContent = '';
+    document.body.style.overflow = '';
+  }
+  $('mClose').addEventListener('click', closePreview);
+  $('mDl').addEventListener('click', function () {
+    if (!current) return;
+    if (current.blob) { saveBlob(current.blob, current.name); return; }
+    var f = current.file;
+    downloadOne(f).catch(function (e) { $('mHint').textContent = e.message; });
+  });
+  $('mShare').addEventListener('click', function () {
+    if (!current || !current.shareFile) return;
+    navigator.share({ files: [current.shareFile] }).catch(function (e) {
+      if (e && e.name !== 'AbortError') {
+        $('mShare').classList.add('hidden');
+        $('mHint').textContent = 'この環境では共有できません。写真を長押しして保存してください。';
+      }
+    });
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePreview(); });
+})();
+</script>
+</body>
+</html>
